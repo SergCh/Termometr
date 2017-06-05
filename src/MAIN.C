@@ -11,8 +11,8 @@
 #endif
 
 __code const unsigned char numbers[]=   {SYMBOL_0,SYMBOL_1,SYMBOL_2,SYMBOL_3,SYMBOL_4,
-                                 SYMBOL_5,SYMBOL_6,SYMBOL_7,SYMBOL_8,SYMBOL_9
-                                     SYMBOLS_HEX};
+                                         SYMBOL_5,SYMBOL_6,SYMBOL_7,SYMBOL_8,SYMBOL_9
+                                         SYMBOLS_HEX};
 
 unsigned char symbols[]={SYMBOL__, SYMBOL_EMPTY, SYMBOL_EMPTY};
 
@@ -39,7 +39,7 @@ unsigned int period_blink;
 
 #define ON_DISPLAY_START_BLINK      {BLINKON    DISPLAYED=1;}
 #define ON_DISPLAY_NO_BLINK         {BLINKOFF   DISPLAYED=1;}
-#define OFF_DISPLAY         {BLINKOFF   DISPLAYED=0;}
+#define OFF_DISPLAY                 {BLINKOFF   DISPLAYED=0;}
 
 unsigned int timer_;        // for delayds
 //=========================================================================
