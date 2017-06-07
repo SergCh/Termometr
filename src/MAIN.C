@@ -43,11 +43,11 @@ unsigned int period_blink;
 
 unsigned int timer_;        // for delayds
 //=========================================================================
-void timer0(void) __interrupt 1  __using 2 {             //interrupt timer0
+void timer0(void) __interrupt 1  __using 2 {             // interrupt timer0
 static unsigned char currsymbol=0;
 static unsigned char timer150=0;
 
-    ++timer_;                       // increment any interrupt
+    ++timer_;                                            // increment any interrupt
 
 #   ifdef WITH_BLINK
     if (BLINKED){
@@ -68,9 +68,9 @@ static unsigned char timer150=0;
     if (DISPLAYED) {
         unsigned char S=symbols[currsymbol];            // on segments fo currsymbol
 
-    PININDICATOR0 = 0;                                  // hide
-    PININDICATOR1 = 0;
-    PININDICATOR2 = 0;
+        PININDICATOR0 = 0;                              // hide
+        PININDICATOR1 = 0;
+        PININDICATOR2 = 0;
 
         ANODPORT = S;                                   // symbol to port
 
@@ -83,9 +83,9 @@ static unsigned char timer150=0;
         if (!currsymbol--) currsymbol=2;
 
     } else {
-    PININDICATOR0 = 0;
-    PININDICATOR1 = 0;
-    PININDICATOR2 = 0;
+        PININDICATOR0 = 0;
+        PININDICATOR1 = 0;
+        PININDICATOR2 = 0;
     }
 }
 
@@ -176,8 +176,8 @@ void main(){
                 }
 
                 if (((*onewire_addr)!=0x10)     &&  //ds18s20
-                    ((*onewire_addr)!=0x22)     &&  //ds18b20
-                    ((*onewire_addr)!=0x28))        //ds1822
+                    ((*onewire_addr)!=0x28)     &&  //ds18b20
+                    ((*onewire_addr)!=0x22))        //ds1822
                     continue;                       //ignore sensor but it is not thermosensor
 
                 onewire_reset();                    //restart 1w and select new sensor
