@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 #define SHOW_HELLO      /*for show HELLO*/
-////////#define WITH_BLINK      /*blink number senser and count of sensers*/
+#define WITH_BLINK      /*blink number senser and count of sensers*/
 //#define DISPLAY_HEX
 
 #define FCPU                22118400
