@@ -11,15 +11,14 @@ unsigned char onewire_crc;           //public
 
 signed char tolastprev;
 
+/*-----------------------------------------------------------*/
+/* init pin                                                  */
 void onewire_init(){
   PIN_OW=1;
 }
-/*  not need
-__bit onewire_statewire(){
-  return PIN_OW;
-}
-*/
 
+/*-----------------------------------------------------------*/
+/* reset all devices of 1wire, return true if devices exists */
 __bit onewire_reset(){
   unsigned char i;
 
@@ -32,7 +31,7 @@ __bit onewire_reset(){
   PIN_OW=1;
 
   for (i=80; --i; ){
-      PIN_OW=1;
+//      PIN_OW=1;
       if (!PIN_OW){
           ENABLE_INTERRUPTS
           for (i=120; --i; ){
@@ -49,24 +48,15 @@ __bit onewire_reset(){
   return 0;
 }
 
-
+/*-----------------------------------------------------------*/
+/* calculate crc for one bit                                 */
 __bit crcbit(__bit b){
   onewire_crc = ((onewire_crc & 1) != b) ? (onewire_crc>>1) ^ 0b10001100 : onewire_crc>>1;
   return b;
 }
 
-/* not need
- unsigned char onewire_crc8(unsigned char *addr, unsigned char len){
-  unsigned char i, j, b;
-
-  for (onewire_crc=i=0; i<len; i++)
-    for (j = 0, b = addr[i]; j<8; j++, b >>=1)
-      crcbit(b&1);
-
-  return onewire_crc;
-}
-*/
-
+/*-----------------------------------------------------------*/
+/* read one bit                                              */
 __bit onewire_readbit(){
   unsigned char i=20;
   __bit r=1;
@@ -81,14 +71,17 @@ __bit onewire_readbit(){
   for (;i;i--){
     if (!PIN_OW) r = 0;
   }
+//  PIN_OW=1;
+
   ENABLE_INTERRUPTS
 
-  PIN_OW=1;
   delay60us;
-  PIN_OW=1;
+//  PIN_OW=1;
   return r;
 }
 
+/*-----------------------------------------------------------*/
+/* read one byte                                             */
 unsigned char onewire_read(){
   unsigned char  r, ibit=1;
 
@@ -100,6 +93,8 @@ unsigned char onewire_read(){
   return r;
 }
 
+/*-----------------------------------------------------------*/
+/* read len bytes, return true if crc=0                      */
 __bit onewire_read_array(unsigned char *array, unsigned char len){
   onewire_crc=0;
 
@@ -109,7 +104,8 @@ __bit onewire_read_array(unsigned char *array, unsigned char len){
   return !onewire_crc;
 }
 
-
+/*-----------------------------------------------------------*/
+/* write one bit                                             */
 void onewire_writebit(__bit b){
 
   DISABLE_INTERRUPTS
@@ -125,18 +121,27 @@ void onewire_writebit(__bit b){
   ENABLE_INTERRUPTS
 }
 
+/*-----------------------------------------------------------*/
+/* write one byte                                            */
 void onewire_write(unsigned char b){
   unsigned char i=8;
 
-  for (; i; --i, b>>=1)
+  for (; i; --i, b>>=1){
     onewire_writebit(b&1);
+  }
 }
 
+/*-----------------------------------------------------------*/
+/* write len bites                                           */
 void onewire_write_array(unsigned char *array, unsigned char len){
-  for (; len; len--, array++)
+
+  for (; len; len--, array++){
     onewire_write(*array);
+  }
 }
 
+/*-----------------------------------------------------------*/
+/* init valiables for search                                 */
 void onewire_search_init(){
   unsigned char i=8;
 
@@ -146,6 +151,8 @@ void onewire_search_init(){
   tolastprev=-1;
 }
 
+/*-----------------------------------------------------------*/
+/* search next device, return true if found                  */
 __bit onewire_search(){
   unsigned char *pd = (unsigned char *)onewire_addr;
   signed char lastdef=64;
@@ -192,18 +199,32 @@ __bit onewire_search(){
   return 1;
 }
 
-
-void onewire_matchROM(unsigned char * addr){  //select sensor MATCH ROM
+/*-----------------------------------------------------------*/
+/* select 1wire device, command MATCH ROM 0x55               */
+void onewire_matchROM(unsigned char * addr){
    onewire_write(0x55);
    onewire_write_array(addr,8);
 }
 
-/* not need
-__bit onewire_readROM(){
-    onewire_write(0x33);
-    return onewire_read_array(onewire_addr,8);
-}
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

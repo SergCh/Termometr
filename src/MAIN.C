@@ -4,6 +4,11 @@
 #include "onewire.h"
 #include "symbols.h"
 
+#define   DELAY_DISPLAY_OF_TEMP    5               // delay of display temperature in ds
+#define   DELAY_DISPLAY_OF_NUMB    10              // delay of display number of sensor in ds
+#define   DELAY_DISPLAY_OF_SENSOR  50              // delay of display sensor, must biger then DELAY_DISPLAY_OF_TEMP
+#define   TIMES_DISPLAY_OF_SENSOR  ((int)DELAY_DISPLAY_OF_SENSOR/DELAY_DISPLAY_OF_TEMP)
+
 #ifdef DISPLAY_HEX
 #  define SYMBOLS_HEX       ,SYMBOL_A,SYMBOL_B,SYMBOL_C,SYMBOL_D,SYMBOL_E,SYMBOL_F
 #else
@@ -16,11 +21,11 @@ __code const unsigned char numbers[]=   {SYMBOL_0,SYMBOL_1,SYMBOL_2,SYMBOL_3,SYM
 
 unsigned char symbols[]={SYMBOL__, SYMBOL_EMPTY, SYMBOL_EMPTY};
 
-#define   SETdisplay(S0,S1,S2) {symbols[0]=S0; symbols[1]=S1; symbols[2]=S2;}
-#define   SETdisplay3MINUS     {symbols[0]=symbols[1]=symbols[2]=SYMBOL_MINUS;}
-#define   SETdisplay_N_(N)     {symbols[0]=symbols[2]=SYMBOL__; symbols[1]=numbers[N];}
-#define   SETdisplay_non       {symbols[0]=symbols[2]=SYMBOL_n; symbols[1]=SYMBOL_o;}
-#define   SETdisplay_Err       {symbols[0]=SYMBOL_E; symbols[1]=symbols[2]=SYMBOL_r;}
+#define   SETdisplay(S0,S1,S2) {symbols[0]=S0;           symbols[1]=S1;           symbols[2]=S2;}
+#define   SETdisplay3MINUS     {symbols[0]=SYMBOL_MINUS; symbols[1]=SYMBOL_MINUS; symbols[2]=SYMBOL_MINUS;}
+#define   SETdisplay_N_(N)     {symbols[0]=SYMBOL__;     symbols[1]=numbers[N];   symbols[2]=SYMBOL__;}
+#define   SETdisplay_non       {symbols[0]=SYMBOL_n;     symbols[1]=SYMBOL_o;     symbols[2]=SYMBOL_n;}
+#define   SETdisplay_Err       {symbols[0]=SYMBOL_E;     symbols[1]=SYMBOL_r;     symbols[2]=SYMBOL_r;}
 #ifdef DISPLAY_HEX             // for debug
 #  define SETdisplayHEX(N,I)   {symbols[0]=numbers[N>>4]; symbols[1]=numbers[N & 0x0F]; symbols[2]=numbers[I];}
 #endif
@@ -31,7 +36,7 @@ __bit DISPLAYED=1;
 __bit BLINKED=0;        //  switch in period DISPLAYED
 unsigned int period_blink;
 #  define BLINKON           {period_blink=0;    BLINKED=1;}
-#  define BLINKOFF          {           BLINKED=0;}
+#  define BLINKOFF          {                   BLINKED=0;}
 #else
 #  define BLINKON
 #  define BLINKOFF
@@ -57,7 +62,6 @@ static unsigned char timer150=0;
         }
     }
 #   endif
-
 
     if (timer150--){
         return;
@@ -133,10 +137,11 @@ void main(){
     typedef union {
         signed int    s16;
         unsigned char u8[2];
-    } U16_U8;
+    } S16_U8;
 
     unsigned char i;    //temporaly variables
     unsigned char n=0;  //number of sensors
+    unsigned char times;//count of display temperature of one sensor
     __bit state=1;      //true-search sensors, false-read configs
 
     P3=0;               //init ports
@@ -200,7 +205,6 @@ void main(){
             }while (i<MAX_SENSORS);
 
             n=i;                                    //in "n" count of connected sensors
-            i=0;
 
             SETdisplay_N_(n);                       //display count of sensors
             ON_DISPLAY_START_BLINK;
@@ -209,91 +213,78 @@ void main(){
 
             if (n>0) {
                 state=0;                            //go to read config
-                OFF_DISPLAY;
+
+                SETdisplay3MINUS;
+                ON_DISPLAY_NO_BLINK;
+                i=0;
             }
         }else{                                      //read configs
-            if (!onewire_reset()){                  //reset 1w
-                SETdisplay_Err;                     //show error end restart search
-                delayds(20);
-                state=1;
-                continue;
-            }
-            onewire_matchROM(sensors_addr[i]);      //select sensor[i]
-
-            onewire_write(0x44);                    //start "Convert"
-            delayds(20);                            //display and wait while run "convert"
 
             if (n>1){                               //display number of sensor if more then 1
-                ON_DISPLAY_START_BLINK;
-                SETdisplay_N_(i);
-                delayds(10);
+                SETdisplay_N_(i+1);
+                delayds(DELAY_DISPLAY_OF_NUMB);
             }
 
-            if (read_sensor_config_loop(sensors_addr[i])){ //read config
-                unsigned char signdes=0;                   //0b000000ds s-sign d-tens or 0b00000100 to hunded
-                unsigned char units;                       //units
-                unsigned char tens;                        //tens
-                U16_U8 t;                                  //temperature
+            for (times=TIMES_DISPLAY_OF_SENSOR;--times;){
 
-#if defined(__SDCC_mcs51)                                  //direct or reverse order need to remove to config
-                t.s16= *(int*)sensor_config;               //DON'T TESTED
+                if (!onewire_reset()){                  //reset 1w
+                    SETdisplay_Err;                     //show error 2seconds end restart search
+                    delayds(20);
+                    state=1;
+                    break;
+                }
+                onewire_matchROM(sensors_addr[i]);      //select sensor[i]
+
+                onewire_write(0x44);                    //start "Convert"
+                delayds(1);                             //wait convert
+
+                if (read_sensor_config_loop(sensors_addr[i])){ //read config
+                    unsigned char signdes=0;                   //0b000000ds s-sign d-tens or 0b00000100 to hunded
+                    unsigned char units;                       //units
+                    unsigned char tens;                        //tens
+                    S16_U8 t;                                  //temperature
+
+#if defined(__SDCC_mcs51)                                      //direct or reverse order need to remove to config
+                    t.s16= *(int*)sensor_config;               //DON'T TESTED
 #else
-                t.u8[0]=sensor_config[1];                  //in this c51 not right order bytes in integer
-                t.u8[1]=sensor_config[0];                  //first Hi, second Lo
+                    t.u8[0]=sensor_config[1];                  //in this c51 not right order bytes in integer
+                    t.u8[1]=sensor_config[0];                  //first Hi, second Lo
 #endif
 
-                t.s16 >>= (sensors_addr[i][0] == 0x10)?1:4;
+                    t.s16 >>= (sensors_addr[i][0] == 0x10)?1:4;
 
-                if (t.s16<0){
-                    t.s16=-t.s16;
-                    signdes=1;
+                    if (t.s16<0){
+                        t.s16=-t.s16;
+                        signdes=1;
+                    }
+
+                    units=numbers[t.s16%10];                   //allways exist
+
+                    if (t.s16>=10){
+                        tens=numbers[(t.s16/10)%10];           //tens
+                        signdes|=2;
+                    }
+
+                    if (t.s16>=100){
+                        signdes=4;                             //only "+1xx"
+                    }
+
+                    switch(signdes){
+                    case 0: SETdisplay(SYMBOL_EMPTY,units,SYMBOL_GRADUS); break;  /* +3o     _3o */
+                    case 1: SETdisplay(SYMBOL_MINUS,units,SYMBOL_GRADUS); break;  /* -3o     -3o */
+                    case 2: SETdisplay(tens,units,SYMBOL_GRADUS); break;          /* +33o    33o */
+                    case 3: SETdisplay(SYMBOL_MINUS,tens,units); break;           /* -33o    -33 */
+                    case 4: SETdisplay(SYMBOL_1,tens,units); break;               /* +133o   133 */
+                    }
+                 }else{
+                    SETdisplay_non;
                 }
-
-                units=numbers[t.s16%10];                   //allways exist
-
-                if (t.s16>=10){
-                    tens=numbers[(t.s16/10)%10];           //tens
-                    signdes|=2;
-                }
-
-                if (t.s16>=100){
-                    signdes=4;                             //only "+1xx"
-                }
-
-                switch(signdes){
-                case 0: SETdisplay(SYMBOL_EMPTY,units,SYMBOL_GRADUS); break;  /* +3o     _3o */
-                case 1: SETdisplay(SYMBOL_MINUS,units,SYMBOL_GRADUS); break;  /* -3o     -3o */
-                case 2: SETdisplay(tens,units,SYMBOL_GRADUS); break;          /* +33o    33o */
-                case 3: SETdisplay(SYMBOL_MINUS,tens,units); break;           /* -33o    -33 */
-                case 4: SETdisplay(SYMBOL_1,tens,units); break;               /* +133o   133 */
-                }
-             }else{
-                SETdisplay_non;
+                delayds(DELAY_DISPLAY_OF_TEMP-1);          //wait without "convert"
             }
-
-            ON_DISPLAY_NO_BLINK;
             if (++i == n) i=0;                             //next sensor
-
         } //end of if (state)
     } //end of while(1)
 } //end of main
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
