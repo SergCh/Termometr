@@ -46,7 +46,7 @@ unsigned int period_blink;
 #define ON_DISPLAY_NO_BLINK         {BLINKOFF   DISPLAYED=1;}
 #define OFF_DISPLAY                 {BLINKOFF   DISPLAYED=0;}
 
-unsigned int timer_;        // for delayds NEED ADD "volatile"!!!
+volatile unsigned int timer_;        // for delayds
 //=========================================================================
 void timer0(void) __interrupt 1  __using 2 {             // interrupt timer0
 static unsigned char currsymbol=0;
@@ -70,7 +70,7 @@ static unsigned char timer150=0;
     timer150=COUNT_CYCLES_UPDATE_DISPLAY;               // 150Hz
 
     if (DISPLAYED) {
-        unsigned char S=symbols[currsymbol];            // on segments fo currsymbol NEED ADD "register"!!!
+        register unsigned char S=symbols[currsymbol];            // on segments fo currsymbol
 
         PININDICATOR0 = 0;                              // hide
         PININDICATOR1 = 0;
